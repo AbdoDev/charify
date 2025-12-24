@@ -134,6 +134,16 @@ node bin/charify.js image.png
 
 ---
 
+## ⭐ Give me a Star!
+
+If you like **charify** and want to support the project, please consider starring it on GitHub:
+
+[![GitHub stars](https://img.shields.io/github/stars/abdodev/charify?style=social)](https://github.com/abdodev/charify/stargazers)
+
+It really helps the project get noticed and grow!
+
+---
+
 ## Donate
 
 If you find **charify** useful and want to support development, you can donate any amount here:
