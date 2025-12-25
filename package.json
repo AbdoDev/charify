@@ -1,6 +1,6 @@
 {
   "name": "charify",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "High-quality image to ASCII art CLI",
   "keywords": [
     "ascii",
@@ -18,6 +18,7 @@
   "license": "MIT",
   "author": "AbdoDev",
   "type": "module",
+  "main": "src/index.js",
   "bin": {
     "charify": "./src/cli.js"
   },
