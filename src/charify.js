@@ -1,8 +1,10 @@
-import sharp from "sharp";
 import { PRESETS, DEFAULTS } from "./constants.js";
 import { SharpMissingError } from "./errors.js";
+import { loadSharp } from "./loadSharp.js";
 
 export async function convertToAscii(buffer, options = {}) {
+  const sharp = await loadSharp();
+
   if (!sharp) {
     throw new SharpMissingError();
   }
