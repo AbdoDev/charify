@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>charify - Convert images to ASCII art</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              mono: ["'Cascadia'", "monospace"],
+            },
+            colors: {
+              terminal: "#0f0",
+              bg: "#111",
+              darkbg: "#000",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      pre {
+        line-height: 1;
+        font-size: clamp(7px, 1.8vw, 12px);
+      }
+      #drop-zone.dragover {
+        @apply bg-green-950/30 border-terminal;
+      }
+    </style>
+  </head>
+  <body
+    class="min-h-screen bg-bg text-terminal font-mono flex flex-col items-center justify-start py-8 px-4"
+  >
+    <h1 class="text-4xl md:text-5xl font-bold mb-2 tracking-wider">charify</h1>
+    <p class="text-lg md:text-xl mb-8 opacity-90">
+      Drag an image here or click to upload
+    </p>
+
+    <!-- Drop Zone -->
+    <div
+      id="drop-zone"
+      class="border-4 border-dashed border-terminal rounded-xl p-12 md:p-20 w-full max-w-3xl cursor-pointer transition-all duration-300 hover:bg-green-950/20"
+    >
+      <p class="text-2xl md:text-3xl">Drop image here</p>
+    </div>
+
+    <!-- Controls -->
+    <div
+      class="mt-10 flex flex-wrap gap-6 md:gap-10 items-center justify-center text-lg"
+    >
+      <label class="flex items-center gap-3">
+        Width:
+        <input
+          type="range"
+          id="width"
+          min="50"
+          max="300"
+          value="120"
+          class="w-48 md:w-64 accent-terminal"
+        />
+        <span id="width-val" class="w-12 text-right">120</span>
+      </label>
+
+      <label class="flex items-center gap-3">
+        Preset:
+        <select
+          id="preset"
+          class="bg-darkbg border border-terminal px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-terminal"
+        >
+          <option value="dense">Dense</option>
+          <option value="light">Light</option>
+          <option value="blocks">Blocks</option>
+          <option value="minimal">Minimal</option>
+        </select>
+      </label>
+
+      <label class="flex items-center gap-3">
+        <input type="checkbox" id="invert" class="w-5 h-5 accent-terminal" />
+        Invert
+      </label>
+
+      <button
+        id="download-btn"
+        class="px-6 py-3 bg-terminal text-black font-bold rounded hover:bg-green-400 transition shadow-lg shadow-terminal/50"
+      >
+        Download HTML
+      </button>
+    </div>
+
+    <!-- Output -->
+    <pre
+      id="output"
+      class="mt-12 bg-darkbg p-6 md:p-10 rounded-lg shadow-lg shadow-terminal/50 overflow-auto w-full max-w-7xl border border-terminal/50"
+    >
+No content yet.</pre
+    >
+
+    <!-- Hidden file input -->
+    <input type="file" id="file-input" accept="image/*" class="hidden" />
+
+    <script type="module">
+      // If you later bundle charify for browser, you can import it here.
+      // For now, we use a pure canvas-based fallback (no sharp needed).
+
+      const PRESETS = {
+        dense: "█▓▒░@%#*+=-:. ",
+        light: "#*+=-:. ",
+        blocks: "█▓▒░ ",
+        minimal: "#.+ ",
+      };
+
+      const dropZone = document.getElementById("drop-zone");
+      const output = document.getElementById("output");
+      const widthInput = document.getElementById("width");
+      const widthVal = document.getElementById("width-val");
+      const presetSelect = document.getElementById("preset");
+      const invertCheck = document.getElementById("invert");
+      const downloadBtn = document.getElementById("download-btn");
+      const fileInput = document.getElementById("file-input");
+
+      let currentImage = null;
+
+      // Update width display
+      widthInput.addEventListener("input", () => {
+        widthVal.textContent = widthInput.value;
+        if (currentImage) convertAndDisplay();
+      });
+
+      // Controls change → reprocess
+      presetSelect.addEventListener(
+        "change",
+        () => currentImage && convertAndDisplay()
+      );
+      invertCheck.addEventListener(
+        "change",
+        () => currentImage && convertAndDisplay()
+      );
+
+      // Click to upload
+      dropZone.addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files[0]) handleFile(e.target.files[0]);
+      });
+
+      // Drag & drop
+      ["dragenter", "dragover"].forEach((ev) =>
+        dropZone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          dropZone.classList.add("dragover");
+        })
+      );
+
+      ["dragleave", "dragend", "drop"].forEach((ev) =>
+        dropZone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          dropZone.classList.remove("dragover");
+          if (ev === "drop" && e.dataTransfer.files[0]) {
+            handleFile(e.dataTransfer.files[0]);
+          }
+        })
+      );
+
+      function handleFile(file) {
+        if (!file.type.startsWith("image/")) {
+          output.textContent = "Please upload a valid image file.";
+          return;
+        }
+
+        const img = new Image();
+        img.onload = () => {
+          currentImage = img;
+          convertAndDisplay();
+        };
+        img.src = URL.createObjectURL(file);
+      }
+
+      async function convertAndDisplay() {
+        if (!currentImage) return;
+
+        output.textContent = "Processing...";
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        const targetWidth = Number(widthInput.value);
+        const ratio = 0.55;
+        const targetHeight = Math.round(
+          (currentImage.naturalHeight / currentImage.naturalWidth) *
+            targetWidth *
+            ratio
+        );
+
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        ctx.drawImage(currentImage, 0, 0, targetWidth, targetHeight);
+
+        const imageData = ctx.getImageData(
+          0,
+          0,
+          targetWidth,
+          targetHeight
+        ).data;
+        const charset = PRESETS[presetSelect.value];
+        const rampLen = charset.length - 1;
+        const invert = invertCheck.checked;
+
+        let ascii = "";
+        for (let y = 0; y < targetHeight; y++) {
+          for (let x = 0; x < targetWidth; x++) {
+            const i = (y * targetWidth + x) * 4;
+            const gray =
+              imageData[i] * 0.299 +
+              imageData[i + 1] * 0.587 +
+              imageData[i + 2] * 0.114;
+
+            let intensity = Math.pow(gray / 255, 1 / 2.2) * 255; // gamma 2.2
+            let idx = Math.floor((intensity / 255) * rampLen);
+            if (invert) idx = rampLen - idx;
+
+            ascii += charset[idx];
+          }
+          ascii += "\n";
+        }
+
+        output.textContent = ascii;
+      }
+
+      // Download as HTML
+      downloadBtn.addEventListener("click", () => {
+        if (!output.textContent || output.textContent === "Processing...")
+          return;
+
+        const htmlContent = `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+        <meta charset="UTF-8">
+        <title>charify ASCII Art</title>
+        <style>
+            body { background:#000; color:#0f0; font-family:'Courier New',monospace; white-space:pre; line-height:1; margin:40px; font-size:10px; }
+        </style>
+        </head>
+        <body>${output.textContent}</body>
+        </html>`;
+
+        const blob = new Blob([htmlContent], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "charify-ascii-art.html";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    </script>
+
+    <footer class="mt-16 text-sm opacity-70">
+      This project is
+      <a
+        href="https://github.com/abdodev/charify"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="underline hover:text-green-400"
+      >
+        open source on GitHub </a
+      >.
+    </footer>
+  </body>
+</html>

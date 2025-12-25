@@ -1,156 +1,233 @@
 ![charify logo](./assets/charify.svg)
 
-High-quality image to ASCII art converter for the command line.
-npm-ready. No dependencies on Unix tools.
+# charify
+
+High-quality image to ASCII art converter – CLI tool and npm library.
+
+Powered by `sharp` for excellent image processing. No external Unix tools required.
 
 ---
 
 ## Install
 
-Global install:
+Global install (recommended for CLI usage):
 
-```bash
+```batch
 npm install -g charify
 ```
 
 Run without installing:
 
-```bash
+```batch
 npx charify image.png
 ```
 
----
+Install as a library in your project:
 
-## Usage
-
-```bash
-charify image.png
-charify image.jpg -w 120
-charify image.png -o output.txt
-charify image.png --html -o output.html
-charify --link https://example.com/image.jpg
+```batch
+npm install charify
 ```
 
 ---
 
-## Options
+## CLI Usage
 
-| Option       | Description                                                |
-| ------------ | ---------------------------------------------------------- |
-| -w, --width  | Output width (default: 100)                                |
-| --ratio      | Height/width ratio (default: 0.55)                         |
-| --gamma      | Gamma correction (default: 2.2)                            |
-| --invert     | Invert brightness                                          |
-| --html       | Export as HTML (only works if output file ends with .html) |
-| -o, --output | Output file (.txt or .html)                                |
-| --link       | Load image from URL                                        |
-| --charset    | Custom ASCII charset                                       |
-| --preset     | Use a preset: dense, light, blocks, minimal                |
+```batch
+charify <image> [options]
+charify --url <image-url> [options]
+```
+
+## Examples
+
+### Basic conversion (prints to terminal)
+
+```batch
+charify photo.jpg
+```
+
+### Wider output
+
+```batch
+charify photo.jpg -w 140
+```
+
+### Save to file
+
+```batch
+charify photo.jpg -o art.txt
+```
+
+### Export as standalone HTML
+
+```batch
+charify photo.jpg --html -o art.html
+```
+
+### From URL
+
+```batch
+charify --url https://example.com/photo.jpg --preset blocks -o blocks.html
+```
+
+### Invert colors with custom preset
+
+```batch
+charify photo.jpg --invert --preset light
+```
+
+### CLI Options
+
+| Option                | Description                                                |
+| --------------------- | ---------------------------------------------------------- |
+| `<image>`             | Path to local image file                                   |
+| `-u, --url <url>`     | Fetch image from URL                                       |
+| `-w, --width <n>`     | Output width in characters (default: 100)                  |
+| `-r, --ratio <n>`     | Height-to-width ratio for character aspect (default: 0.55) |
+| `-g, --gamma <n>`     | Gamma correction (default: 2.2)                            |
+| `-p, --preset <name>` | Preset charset: dense (default), light, blocks, minimal    |
+| `-c, --charset <str>` | Custom character ramp (e.g. " .:-=+\*#%@")                 |
+| `-i, --invert`        | Invert brightness mapping                                  |
+| `--html`              | Output as standalone HTML page                             |
+| `-o, --output <file>` | Write result to file (.txt for plain, .html for HTML)      |
+
+Note: --html is automatically enabled if the output filename ends with .html.
+
+---
+
+## Library Usage
+
+Import and use directly in Node.js projects:
+
+```js
+import charify, { PRESETS, wrapAsHtml } from "charify";
+import fs from "fs";
+
+const buffer = fs.readFileSync("photo.jpg");
+
+const ascii = await charify(buffer, {
+  width: 140,
+  preset: "blocks",
+  invert: true,
+  gamma: 2.0,
+  ratio: 0.6,
+});
+
+console.log(ascii);
+
+// Or generate HTML manually
+const html = wrapAsHtml(ascii);
+fs.writeFileSync("art.html", html);
+```
+
+### Exported API
+
+- `charify(buffer, options?)` – main function (default export)
+- `PRESETS` – object with built-in charsets (dense, light, blocks, minimal)
+- `wrapAsHtml(asciiString)` – utility to wrap plain ASCII in a minimal standalone HTML page
+
+Requires sharp at runtime (peer dependency). Install it in your project:
+
+```batch
+npm install sharp
+```
 
 ---
 
 ## Presets
 
-| Name    | Description            |
-| ------- | ---------------------- |
-| dense   | Best quality (default) |
-| light   | Softer output          |
-| blocks  | Block-style ASCII      |
-| minimal | Very simple            |
+| Preset  | Charset        | Best for                     |
+| ------- | -------------- | ---------------------------- |
+| dense   | █▓▒░@%#\*+=-:. | Highest detail (default)     |
+| light   | #\*+=-:.       | Softer, less dense output    |
+| blocks  | █▓▒░           | Classic blocky ASCII style   |
+| minimal | #.+            | Extremely simple, clean look |
 
 Example:
 
-```bash
-charify image.png --preset blocks
+```batch
+charify photo.jpg --preset blocks
 ```
 
----
+### Custom Charset
 
-## Custom Charset
+Override with your own ramp (dark → bright):
 
-Specify your own charset to control ASCII output characters:
-
-```bash
-charify image.png --charset " .:-=+*#%@"
+```batch
+charify photo.jpg --charset " .:-=+\*#%@"
 ```
 
 ---
 
 ## HTML Export
 
-To export ASCII art wrapped in an HTML page, use `--html` **with** an output file ending in `.html`:
+Creates a ready-to-open HTML file with green-on-black terminal styling:
 
-```bash
-charify image.png --html -o art.html
+```batch
+charify photo.jpg --html -o my-art.html
 ```
 
-If you use `--html` without specifying an output file ending with `.html`, it will be ignored and plain ASCII will be output instead.
+# or simply
 
----
-
-## Input from URL
-
-Load image from the internet:
-
-```bash
-charify --link https://example.com/image.jpg
-```
-
-You can combine with other options like `--html` and `-o`:
-
-```bash
-charify --link https://example.com/image.jpg --html -o output.html
+```batch
+charify photo.jpg -o my-art.html # auto-detects .html extension
 ```
 
 ---
 
-## Quality Tuning
+## Browser Demo
 
-Adjust gamma correction and character aspect ratio:
+Try charify instantly in the browser!
 
-```bash
-charify image.png --gamma 2.0 --ratio 0.6
-```
+Open `demo/index.html` (included in the package):
 
----
+- Drag & drop images
+- Live preview
+- Adjustable width, preset, invert
+- Download as HTML
 
-## Invert Brightness
-
-Invert the brightness mapping:
-
-```bash
-charify image.png --invert
-```
+No build step required – uses Tailwind CSS via CDN.
 
 ---
 
 ## Local Development
 
-Run directly without installing:
+```batch
+git clone https://github.com/abdodev/charify.git
+cd charify
+npm install
+```
 
-```bash
-node bin/charify.js image.png
+# Run CLI directly
+
+```batch
+node src/cli.js image.png
+```
+
+# Test library
+
+```batch
+node -e "import { charify } from './src/index.js'; /_ your test code _/"
 ```
 
 ---
 
-## ⭐ Give me a Star!
+## ⭐ Star on GitHub
 
-If you like **charify** and want to support the project, please consider starring it on GitHub:
+If you like charify, please star the repo!
 
-[![GitHub stars](https://img.shields.io/github/stars/abdodev/charify?style=social)](https://github.com/abdodev/charify/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/abdodev/charify?style=social)](https://github.com/abdodev/charify)
 
-It really helps the project get noticed and grow!
+It helps others discover the project.
 
 ---
 
 ## Donate
 
-If you find **charify** useful and want to support development, you can donate any amount here:
+If charify saves you time or brings you joy, consider supporting development:
 
-[![Donate](https://img.shields.io/badge/Donate-00457C?logo=paypal)](https://paypal.me/Abdoelsayd81)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal)](https://paypal.me/Abdoelsayd81)
 
-Thank you for your support!
+Thank you ❤️
 
 ---
 
