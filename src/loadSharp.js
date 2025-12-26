@@ -1,6 +1,21 @@
 import { execSync } from "child_process";
+import readline from "readline";
 
 let sharpInstance;
+
+function askYesNo(question) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === "y");
+    });
+  });
+}
 
 export async function loadSharp() {
   if (sharpInstance) return sharpInstance;
@@ -10,8 +25,16 @@ export async function loadSharp() {
     return sharpInstance;
   } catch {
     console.warn(
-      "[Warning]: 'sharp' package not found. Installing it now, please wait..."
+      "[Warning]: 'sharp' package not found. charify might not work without it."
     );
+
+    const install = await askYesNo(
+      "Do you want to install 'sharp' now? (y/n): "
+    );
+    if (!install) {
+      console.log("Skipping 'sharp' installation. Please install it manually.");
+      return null;
+    }
 
     try {
       execSync("npm install sharp", { stdio: "inherit" });
